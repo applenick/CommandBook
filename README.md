@@ -1,6 +1,6 @@
 # CommandBook for PGM
 
-**Note: This fork is dedicated to being used on [PGM](https://github.com/Electroid/PGM/) servers. In paticular [Overcast Community](https://oc.tc)**
+**Note: This fork is dedicated to being used on [PGM](https://github.com/Electroid/PGM/) servers. In particular [Overcast Community](https://oc.tc)**
 
 CommandBook adds essential commands for managing your server, from teleportation commands to time changing commands.
 
