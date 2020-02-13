@@ -380,4 +380,9 @@ public class CSVBanDatabase implements BanDatabase {
             }
         };
     }
+
+	@Override
+	public int getBanCount() {
+		return bans.size();
+	}
 }

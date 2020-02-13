@@ -170,9 +170,11 @@
         </executions>
       </plugin>
 
+      <!-- NOTE: This was giving me problems when building. Hopefully excluding this does not break anything... 
+      
       <plugin>
         <artifactId>maven-assembly-plugin</artifactId>
-        <version>2.2-beta-2</version><!--$NO-MVN-MAN-VER$-->
+        <version>2.2-beta-2</version>$NO-MVN-MAN-VER$
         <configuration>
           <descriptor>${basedir}/src/main/assembly/default.xml</descriptor>
         </configuration>
@@ -190,7 +192,7 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-release-plugin</artifactId>
-        <version>2.4.1</version><!--$NO-MVN-MAN-VER$-->
+        <version>2.4.1</version>$NO-MVN-MAN-VER$
         <configuration>
           <preparationGoals>assembly:assembly</preparationGoals>
           <goals>assembly:assembly</goals>
@@ -224,7 +226,7 @@
             </plugin>
           </reportPlugins>
         </configuration>
-      </plugin>
+      </plugin> -->
     </plugins>
   </build>
 </project>

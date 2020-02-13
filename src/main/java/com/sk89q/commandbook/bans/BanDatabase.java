@@ -66,6 +66,13 @@ public interface BanDatabase extends Iterable<Ban> {
      * @return Whether the given address is banned
      */
     public boolean isBanned(InetAddress address);
+    
+    /**
+     * Gets the number of saved bans
+     * 
+     * @return The ban count
+     */
+    public int getBanCount();
 
     /**
      * Gets the ban message for a banned UUID.

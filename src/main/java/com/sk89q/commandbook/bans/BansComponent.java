@@ -28,6 +28,9 @@ import com.zachsthings.libcomponents.bukkit.BasePlugin;
 import com.zachsthings.libcomponents.bukkit.BukkitComponent;
 import com.zachsthings.libcomponents.config.ConfigurationBase;
 import com.zachsthings.libcomponents.config.Setting;
+
+import org.bukkit.BanList.Type;
+import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -37,7 +40,9 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerLoginEvent;
 
 import java.net.InetAddress;
+import java.util.Date;
 import java.util.UUID;
+import java.util.function.Consumer;
 
 @ComponentInformation(friendlyName = "Bans", desc = "A system for kicks and bans.")
 public class BansComponent extends BukkitComponent implements Listener {
@@ -365,5 +370,44 @@ public class BansComponent extends BukkitComponent implements Listener {
                 throw new CommandException("Bans database failed to save entirely. See server console.");
             }
         }
+        
+        @Command(aliases = {"convert", "transfer"}, desc = "Transfer CommandBook bans to bukkit", flags = "v", min = 0, max = 0)
+        @CommandPermissions({"commandbook.bans.convert"})
+        public void convertBans(final CommandContext args, final CommandSender sender) throws CommandException {
+        	getBanDatabase().forEach(new Consumer<Ban>() {
+				@Override
+				public void accept(Ban b) {
+					bukkitBanPlayer(b, args.hasFlag('v'));
+				}
+			});
+        	
+        	int banCount = getBanDatabase().getBanCount();
+        	if(banCount > 0) {
+            	sender.sendMessage(ChatColor.translateAlternateColorCodes('&', 
+            			String.format("&6Converted &a%d &6ban%s from CommandBook to Bukkit.", 
+            					banCount, 
+            					banCount != 1 ? "s" : "")));
+        	} else {
+        		sender.sendMessage(ChatColor.RED + "Could not convert any bans, since there are none!");
+        	}
+        }
+        
+        private void bukkitBanPlayer(Ban ban, boolean verbose) {
+            Bukkit.getBanList(Type.NAME)
+            .addBan(
+                ban.getLastKnownAlias(),
+                ban.getReason(),
+                ban.getEnd() == 0L ? null : new Date(ban.getEnd()), // null represents a non-expiring ban
+                "Console");
+            
+            if(verbose) {
+            	Bukkit.getConsoleSender().sendMessage(format("&7Ban transfer [&eCMD-BOOK &6-> &9Bukkit&7]: &f%s", ban.toString()));
+            }
+        }
+        
+        private String format(String format, Object...args) {
+        	return ChatColor.translateAlternateColorCodes('&', String.format(format, args));
+        }
+        
     }
 }
