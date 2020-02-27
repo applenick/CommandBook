@@ -18,18 +18,15 @@
 
 package com.sk89q.commandbook.bans;
 
-import com.sk89q.commandbook.CommandBook;
-import com.sk89q.commandbook.InfoComponent;
-import com.sk89q.commandbook.util.ChatUtil;
-import com.sk89q.commandbook.util.InputUtil;
-import com.sk89q.minecraft.util.commands.*;
-import com.zachsthings.libcomponents.ComponentInformation;
-import com.zachsthings.libcomponents.bukkit.BasePlugin;
-import com.zachsthings.libcomponents.bukkit.BukkitComponent;
-import com.zachsthings.libcomponents.config.ConfigurationBase;
-import com.zachsthings.libcomponents.config.Setting;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.net.InetAddress;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.UUID;
+import java.util.function.Consumer;
 
-import org.bukkit.BanList.Type;
+import org.bukkit.BanList;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
@@ -38,11 +35,25 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerLoginEvent;
+import org.json.simple.JSONArray;
+import org.json.simple.JSONObject;
 
-import java.net.InetAddress;
-import java.util.Date;
-import java.util.UUID;
-import java.util.function.Consumer;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.sk89q.commandbook.CommandBook;
+import com.sk89q.commandbook.InfoComponent;
+import com.sk89q.commandbook.util.ChatUtil;
+import com.sk89q.commandbook.util.InputUtil;
+import com.sk89q.minecraft.util.commands.Command;
+import com.sk89q.minecraft.util.commands.CommandContext;
+import com.sk89q.minecraft.util.commands.CommandException;
+import com.sk89q.minecraft.util.commands.CommandPermissions;
+import com.sk89q.minecraft.util.commands.NestedCommand;
+import com.zachsthings.libcomponents.ComponentInformation;
+import com.zachsthings.libcomponents.bukkit.BasePlugin;
+import com.zachsthings.libcomponents.bukkit.BukkitComponent;
+import com.zachsthings.libcomponents.config.ConfigurationBase;
+import com.zachsthings.libcomponents.config.Setting;
 
 @ComponentInformation(friendlyName = "Bans", desc = "A system for kicks and bans.")
 public class BansComponent extends BukkitComponent implements Listener {
@@ -371,38 +382,82 @@ public class BansComponent extends BukkitComponent implements Listener {
             }
         }
         
-        @Command(aliases = {"convert", "transfer"}, desc = "Transfer CommandBook bans to bukkit", flags = "v", min = 0, max = 0)
+        private int banCount = 0;
+        private int expireCount = 0;
+        private JSONArray bans = new JSONArray();
+
+        public final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
+
+        @Command(aliases = {"convert", "transfer"}, desc = "Transfer CommandBook bans to bukkit", min = 0, max = 1)
         @CommandPermissions({"commandbook.bans.convert"})
         public void convertBans(final CommandContext args, final CommandSender sender) throws CommandException {
+
+        	String fileName = args.getString(0, "cmd-book-bans.json");
+
+        	if(getBanDatabase().getBanCount() < 1) {
+        		throw new CommandException("Sorry there are no bans to convert!");
+        	}
+
+        	sender.sendMessage(format("&8--- &aBan Convert [&eCommandBook &a-> &9Bukkit&a]&8 ---"));
+        	sender.sendMessage(format("&eCommandBook Bans: &6%d", getBanDatabase().getBanCount()));
+        	sender.sendMessage(format("&9Bukkit Bans&7: &b%d", Bukkit.getBanList(BanList.Type.NAME).getBanEntries().size()));
+        	sender.sendMessage(format("&7Ban file will be saved to &a%s", fileName));
+
+
+        	banCount = 0; // Reset ban counter
+        	expireCount = 0; // Reset expire count
+        	bans = new JSONArray(); // Reset array
+
         	getBanDatabase().forEach(new Consumer<Ban>() {
-				@Override
-				public void accept(Ban b) {
-					bukkitBanPlayer(b, args.hasFlag('v'));
-				}
-			});
-        	
-        	int banCount = getBanDatabase().getBanCount();
+        		@Override
+        		public void accept(Ban b) {
+        			convertToJson(b, sender);
+        		}
+        	});
+
         	if(banCount > 0) {
-            	sender.sendMessage(ChatColor.translateAlternateColorCodes('&', 
-            			String.format("&6Converted &a%d &6ban%s from CommandBook to Bukkit.", 
-            					banCount, 
-            					banCount != 1 ? "s" : "")));
+        		try {
+        			FileWriter fw = new FileWriter(fileName);
+        			String data = GSON.toJson(bans);
+        			fw.write(data);
+        			fw.close();
+
+        			sender.sendMessage(format("&6Converted &a%d &6ban%s &6from &aCommandBook to &6&o%s &7(&5%d &dexpired bans&7)", 
+        					banCount, 
+        					banCount != 1 ? "s" : "",
+        							fileName,
+        							expireCount));
+        		} catch (IOException e) {
+        			e.printStackTrace();
+        			sender.sendMessage(format("&4Error writing data to file!"));
+        		}
         	} else {
-        		sender.sendMessage(ChatColor.RED + "Could not convert any bans, since there are none!");
+        		sender.sendMessage("There was an error converting CommandBook bans!");
         	}
         }
+       
         
-        private void bukkitBanPlayer(Ban ban, boolean verbose) {
-            Bukkit.getBanList(Type.NAME)
-            .addBan(
-                ban.getLastKnownAlias(),
-                ban.getReason(),
-                ban.getEnd() == 0L ? null : new Date(ban.getEnd()), // null represents a non-expiring ban
-                "Console");
-            
-            if(verbose) {
-            	Bukkit.getConsoleSender().sendMessage(format("&7Ban transfer [&eCMD-BOOK &6-> &9Bukkit&7]: &f%s", ban.toString()));
-            }
+
+        private void convertToJson(Ban ban, CommandSender sender) {
+        	final SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss Z"); // Took a while to find this haha
+    		boolean isExpired = ban.getEnd() != 0 && new Date(ban.getEnd()).before(new Date());
+        	
+    		JSONObject obj = new JSONObject();
+    		obj.put("uuid", ban.getID().toString());
+    		obj.put("name", ban.getLastKnownAlias());
+    		obj.put("created", dateFormat.format(new Date()));
+    		obj.put("source", "Console");
+    		obj.put("expires", ban.getEnd() == 0L ? "forever" : dateFormat.format(new Date(ban.getEnd())));
+    		obj.put("reason", ban.getReason());
+    		    		
+    		if(!isExpired) {
+        		bans.add(obj);
+        		banCount++;
+    		} else {
+    			expireCount++;
+    		}
+    		        	
+    		sender.sendMessage(format("&7Ban converted to &3&oJSON&7 for #&e%d &7-> &2%s %s", banCount, ban.getLastKnownAlias(), isExpired ? "&c(EXPIRED)" : ""));
         }
         
         private String format(String format, Object...args) {
