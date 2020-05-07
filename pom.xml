@@ -2,7 +2,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>com.sk89q</groupId>
   <artifactId>commandbook</artifactId>
-  <version>2.5-SNAPSHOT</version>
+  <version>1.8-PGM</version>
   <name>CommandBook</name>
   <description>CommandBook brings general commands to Bukkit</description>
   <licenses>
@@ -31,12 +31,16 @@
       <id>spigot-repo</id>
       <url>https://hub.spigotmc.org/nexus/content/repositories/snapshots/</url>
     </repository>
+	<repository>
+		<id>ashcon-repo</id>
+		<url>https://repo.ashcon.app/content/repositories/snapshots</url>
+	</repository>
   </repositories>
   <dependencies>
     <dependency>
       <groupId>com.sk89q</groupId>
       <artifactId>worldedit</artifactId>
-      <version>5.5.9-SNAPSHOT</version>
+      <version>6.0.0-SNAPSHOT</version>
     </dependency>
 
     <dependency>
@@ -48,15 +52,29 @@
           <groupId>org.spout</groupId>
           <artifactId>spoutapi</artifactId>
         </exclusion>
+        <exclusion>
+		  <groupId>org.bukkit</groupId>
+	      <artifactId>bukkit</artifactId>
+	    </exclusion>
       </exclusions>
     </dependency>
 
-    <dependency>
-      <groupId>org.bukkit</groupId>
-      <artifactId>bukkit</artifactId>
-      <version>1.9.4-R0.1-SNAPSHOT</version>
-      <scope>provided</scope>
-    </dependency>
+	<!-- SportPaper 1.8.8 -->
+	<dependency>
+		<groupId>app.ashcon</groupId>
+		<artifactId>sportpaper</artifactId>
+		<version>1.8.8-R0.1-SNAPSHOT</version>
+		<scope>provided</scope>
+	</dependency>
+
+	<!-- PGM Util -->
+	<dependency>
+		<groupId>tc.oc.pgm</groupId>
+		<artifactId>util-bukkit</artifactId>
+		<version>0.8-SNAPSHOT</version>
+		<scope>provided</scope>
+	</dependency>
+	
 
     <dependency>
       <groupId>net.sf.opencsv</groupId>

@@ -1,13 +1,17 @@
 package com.sk89q.commandbook.util;
 
-import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
-import com.sk89q.commandbook.CommandBook;
-import com.sk89q.commandbook.locations.*;
-import com.sk89q.commandbook.util.entity.player.PlayerUtil;
-import com.sk89q.commandbook.util.entity.player.comparison.PlayerComparisonUtil;
-import com.sk89q.minecraft.util.commands.CommandContext;
-import com.sk89q.minecraft.util.commands.CommandException;
+import static com.sk89q.commandbook.util.entity.player.PlayerUtil.checkPlayer;
+
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Collection;
+import java.util.GregorianCalendar;
+import java.util.List;
+import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -16,11 +20,18 @@ import org.bukkit.block.Block;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
-import java.util.*;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
-import static com.sk89q.commandbook.util.entity.player.PlayerUtil.checkPlayer;
+import com.google.common.collect.Lists;
+import com.sk89q.commandbook.CommandBook;
+import com.sk89q.commandbook.PGMHelper;
+import com.sk89q.commandbook.locations.HomesComponent;
+import com.sk89q.commandbook.locations.LocationsComponent;
+import com.sk89q.commandbook.locations.NamedLocation;
+import com.sk89q.commandbook.locations.RootLocationManager;
+import com.sk89q.commandbook.locations.WarpsComponent;
+import com.sk89q.commandbook.util.entity.player.PlayerUtil;
+import com.sk89q.commandbook.util.entity.player.comparison.PlayerComparisonUtil;
+import com.sk89q.minecraft.util.commands.CommandContext;
+import com.sk89q.minecraft.util.commands.CommandException;
 
 public class InputUtil {
 
@@ -155,7 +166,7 @@ public class InputUtil {
             throw new CommandException("Time input format unknown.");
         }
     }
-
+    
     public static class PlayerParser {
 
         /**
@@ -167,7 +178,9 @@ public class InputUtil {
          */
         public static List<Player> matchPlayerNames(CommandSender source, String filter) {
 
-            Collection<? extends Player> players = CommandBook.server().getOnlinePlayers();
+            Collection<? extends Player> players = CommandBook.server().getOnlinePlayers().stream().filter(pl -> PGMHelper.isViewable(pl, source)).collect(Collectors.toList());
+
+            
             boolean useDisplayNames = CommandBook.inst().lookupWithDisplayNames;
 
             filter = filter.toLowerCase();
